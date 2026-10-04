@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>撲克牌 3x3 九宮格數和幻方出題器 - 長輩益智桌遊</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-card {
+      font-family: 'Playfair Display', serif;
+    }
+    .felt-bg {
+      background: radial-gradient(circle at center, #1b3a4b 0%, #0d1b2a 70%, #050a12 100%);
+    }
+    .card-shadow {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+    }
+    .scrollbar-thin::-webkit-scrollbar {
+      height: 8px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background: #3b82f6;
+      border-radius: 4px;
+    }
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+<body class="felt-bg min-h-screen text-slate-100 flex flex-col justify-between selection:bg-amber-400 selection:text-black">
+
+  <header class="no-print bg-black/60 backdrop-blur border-b border-cyan-700/50 sticky top-0 z-30 px-3 sm:px-5 py-2.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <span class="text-3xl filter drop-shadow">🎴</span>
+        <div>
+          <h1 class="text-lg sm:text-2xl font-black text-amber-300 tracking-wide flex items-center gap-2">
+            撲克牌 3x3 九宮格「數和幻方」出題器
+            <span class="text-xs bg-amber-500/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full font-normal">純數字相加版</span>
+          </h1>
+          <p class="text-xs text-cyan-200/90">不用理會花色！每橫排、每直排（與兩條斜對角）相加，總和都是相同的幸運數字！</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btnSoundToggle" class="px-3 py-1.5 rounded-xl bg-cyan-950 border border-cyan-500/30 text-cyan-200 text-xs sm:text-sm hover:bg-cyan-900 transition flex items-center gap-1">
+          <span id="soundIcon">🔊</span>
+          <span id="soundText" class="hidden sm:inline">音效開</span>
+        </button>
+        <button id="btnElderMode" class="px-3 py-1.5 rounded-xl bg-amber-600/30 border border-amber-400/50 text-amber-200 text-xs sm:text-sm hover:bg-amber-500/40 transition flex items-center gap-1 font-semibold">
+          <span>👓</span>
+          <span>特大字模式</span>
+        </button>
+        <button id="btnPrintWorksheet" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm shadow transition flex items-center gap-1 font-bold">
+          <span>🖨️</span>
+          <span>列印活動題單</span>
+        </button>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-6xl mx-auto w-full p-2 sm:p-4 flex-grow space-y-4">
+    
+    <!-- Config Bar -->
+    <section class="no-print bg-slate-900/80 backdrop-blur border border-cyan-600/40 rounded-2xl p-3 sm:p-4 shadow-xl">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-center">
+        
+        <div>
+          <label class="block text-xs font-semibold text-cyan-300 mb-1">🔢 撲克 9 張數字組合</label>
+          <select id="selectCardSet" class="w-full bg-slate-800 border border-cyan-500/50 rounded-xl px-3 py-2 text-white font-medium focus:ring-2 focus:ring-amber-400 text-sm">
+            <option value="1_to_9" selected>經典 1 到 9 (A~9) ➔ 總和必為 15</option>
+            <option value="2_to_10">中段 2 到 10 ➔ 總和必為 18</option>
+            <option value="3_to_J">進階 3 到 J (3~11) ➔ 總和必為 21</option>
+            <option value="4_to_Q">挑戰 4 到 Q (4~12) ➔ 總和必為 24</option>
+            <option value="5_to_K">高階 5 到 K (5~13) ➔ 總和必為 27</option>
+            <option value="odd_arithmetic">單數等差數列 (1,3,5,7,9,11,13...) ➔ 總和 21</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-cyan-300 mb-1">⭐ 難易度（預留題目提示）</label>
+          <select id="selectDifficulty" class="w-full bg-slate-800 border border-cyan-500/50 rounded-xl px-3 py-2 text-white font-medium focus:ring-2 focus:ring-amber-400 text-sm">
+            <option value="easy" selected>入門（留 5 張提示，長輩填 4 張）</option>
+            <option value="medium">普通（留 4 張提示，長輩填 5 張）</option>
+            <option value="hard">動腦挑戰（留 3 張提示，長輩填 6 張）</option>
+            <option value="master">長者大師（只留中間 1 張核心牌）</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-cyan-300 mb-1">🎯 本局目標目標總和</label>
+          <div class="bg-amber-400/20 border border-amber-400/50 rounded-xl px-3 py-2 flex items-center justify-between text-amber-300">
+            <span class="text-xs font-bold">每行/每列加總：</span>
+            <span id="targetSumDisplay" class="text-lg font-black tracking-widest text-amber-200">15</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btnNewPuzzle" class="flex-1 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-stone-950 font-black rounded-xl py-2 px-3 shadow-lg active:scale-95 transition flex items-center justify-center gap-1.5 text-sm">
+            <span>🎲</span>
+            <span>重新隨機出題</span>
+          </button>
+          <button id="btnRestart" title="清空長輩所填手牌" class="bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 text-cyan-200 p-2 rounded-xl transition">
+            🔄
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Instruction description -->
+      <div id="modeDescription" class="mt-2.5 text-xs text-cyan-200 bg-slate-800/60 border border-cyan-700/40 px-3 py-2 rounded-xl flex items-center gap-2">
+        <span class="text-base">💡</span>
+        <span id="descContent">規則：本九宮格只看「撲克牌點數」（A=1, J=11, Q=12, K=13）。每一橫排、每一直排相加總和必須完全相同！</span>
+      </div>
+    </section>
+
+    <!-- Available Deck of Poker Cards (A to K pool) -->
+    <section class="no-print bg-slate-900/70 border border-cyan-600/30 rounded-2xl p-3 shadow-lg">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-xs sm:text-sm font-bold text-amber-300 flex items-center gap-1.5">
+          <span>🃏</span> 本局可用的 9 張撲克牌庫（點選牌後，再點九宮格放牌）：
+        </h2>
+        <span class="text-[11px] text-cyan-300">A=1, J=11, Q=12, K=13</span>
+      </div>
+
+      <div id="playerHandCards" class="flex gap-2 overflow-x-auto pb-1 scrollbar-thin justify-start sm:justify-center">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+    <!-- Center Board Section -->
+    <section class="flex flex-col items-center">
+      <div class="w-full max-w-3xl bg-slate-900/90 border-2 border-cyan-500/40 rounded-3xl p-3 sm:p-6 shadow-2xl flex flex-col items-center">
+        
+        <!-- Board Header Stats -->
+        <div class="w-full flex items-center justify-between mb-3 px-1 text-xs sm:text-sm">
+          <div class="flex items-center gap-2">
+            <span class="bg-amber-400 text-stone-950 font-black px-2.5 py-1 rounded-full text-xs">3x3 數和九宮格</span>
+            <span id="badgeCurrentDiff" class="bg-cyan-900 text-cyan-200 border border-cyan-500/40 px-2 py-0.5 rounded-full text-xs">入門模式</span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-cyan-300">剩餘未放空格: <strong id="countRemaining" class="text-amber-300 text-base">0</strong></span>
+            <span class="text-cyan-300">選中手牌: <strong id="lblActiveCard" class="text-amber-300">無</strong></span>
+          </div>
+        </div>
+
+        <!-- 3x3 Magic Square with Dynamic Row & Col Sum Indicators -->
+        <div class="relative py-2 flex flex-col items-center">
+          
+          <!-- Top Column Sum Indicators -->
+          <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-2 w-full max-w-md px-1 text-center">
+            <div id="colSum0" class="text-xs font-bold px-2 py-1 rounded-lg bg-slate-800 border border-slate-600 text-slate-300">直 1 和: 0</div>
+            <div id="colSum1" class="text-xs font-bold px-2 py-1 rounded-lg bg-slate-800 border border-slate-600 text-slate-300">直 2 和: 0</div>
+            <div id="colSum2" class="text-xs font-bold px-2 py-1 rounded-lg bg-slate-800 border border-slate-600 text-slate-300">直 3 和: 0</div>
+          </div>
+
+          <!-- Board and Row Sum Indicators -->
+          <div class="flex items-center gap-2 sm:gap-4">
+            
+            <!-- The 3x3 Board -->
+            <div id="boardContainer" class="p-3 bg-slate-800/80 border-4 border-cyan-500/50 rounded-2xl grid grid-cols-3 gap-3 sm:gap-4 transition-all duration-200">
+              <!-- 9 Cells rendered by JS -->
+            </div>
+
+            <!-- Right Row Sum Indicators -->
+            <div class="flex flex-col justify-around h-full gap-3 sm:gap-4 text-center">
+              <div id="rowSum0" class="text-xs font-bold px-2.5 py-3 rounded-lg bg-slate-800 border border-slate-600 text-slate-300 flex items-center justify-center">橫 1 和: 0</div>
+              <div id="rowSum1" class="text-xs font-bold px-2.5 py-3 rounded-lg bg-slate-800 border border-slate-600 text-slate-300 flex items-center justify-center">橫 2 和: 0</div>
+              <div id="rowSum2" class="text-xs font-bold px-2.5 py-3 rounded-lg bg-slate-800 border border-slate-600 text-slate-300 flex items-center justify-center">橫 3 和: 0</div>
+            </div>
+
+          </div>
+
+          <!-- Diagonal Sum Indicators -->
+          <div class="flex justify-between w-full max-w-md mt-2 text-center text-xs px-2 text-cyan-300">
+            <span id="diagSumMain" class="bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded">左上至右下對角和: 0</span>
+            <span id="diagSumAnti" class="bg-slate-800/80 border border-slate-700 px-2 py-0.5 rounded">右上至左下對角和: 0</span>
+          </div>
+
+        </div>
+
+        <!-- Action Buttons Below Board -->
+        <div class="no-print mt-4 w-full flex flex-wrap items-center justify-center gap-2">
+          <button id="btnHint" class="px-3.5 py-2 bg-cyan-900 hover:bg-cyan-800 border border-cyan-400/40 text-amber-200 rounded-xl font-bold text-xs sm:text-sm transition flex items-center gap-1.5">
+            <span>💡</span>
+            <span>提示一格（指導長輩）</span>
+          </button>
+          <button id="btnClearCell" class="px-3.5 py-2 bg-red-900/60 hover:bg-red-800 border border-red-500/40 text-red-200 rounded-xl font-bold text-xs sm:text-sm transition flex items-center gap-1.5">
+            <span>🧹</span>
+            <span>清空選取格</span>
+          </button>
+          <button id="btnCheckSolution" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 rounded-xl font-black text-xs sm:text-sm shadow-lg transition flex items-center gap-1.5">
+            <span>✔️</span>
+            <span>檢查各行總和</span>
+          </button>
+          <button id="btnShowSolution" class="px-3.5 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl font-semibold text-xs sm:text-sm transition flex items-center gap-1.5">
+            <span>👁️</span>
+            <span>查看正確答案</span>
+          </button>
+        </div>
+
+        <!-- Instructions for Teachers and Seniors -->
+        <div class="no-print mt-4 w-full bg-slate-800/60 border border-cyan-700/30 rounded-xl p-3 text-xs text-cyan-200/90 leading-relaxed">
+          <div class="font-bold text-amber-300 mb-1 flex items-center gap-1.5">
+            <span>👨‍🏫</span> 帶領老師與長輩實體活動指南（九宮格幻方）：
+          </div>
+          <p>
+            1. <strong>不需管牌的花色</strong>，只依點數大小相加（A算1點、2~10照算、J算11、Q算12、K算13）。<br>
+            2. 本局從撲克牌中挑出指定的 9 張牌，每張牌只能放一次，請長輩動腦合作排在 3x3 矩陣中。<br>
+            3. <strong>目標：每一條橫排、每一直排、兩條斜對角相加，答案必須等於目標數字（例如 15）！</strong><br>
+            4. 訣竅小分享：9張牌中間的那一張牌（例如 1~9 的中位數 5），一定要擺在九宮格正中央！
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+  <!-- Non-blocking Toast notification -->
+  <div id="toastNotification" class="no-print fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 opacity-0 pointer-events-none transform translate-y-3">
+    <div id="toastInner" class="bg-stone-900 border-2 border-amber-400 text-white font-bold px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-sm">
+      <span id="toastIcon">✨</span>
+      <span id="toastMsg">訊息通知</span>
+    </div>
+  </div>
+
+  <!-- Printable Worksheet Section (Clean A4 Layout) -->
+  <section id="printSection" class="print-only hidden p-6 bg-white text-black min-h-screen">
+    <div class="max-w-2xl mx-auto border-2 border-black p-6 rounded-lg">
+      <div class="text-center border-b-2 border-black pb-3 mb-4">
+        <h1 class="text-2xl font-black">撲克牌 3x3 九宮格「數和幻方」學習單</h1>
+        <p class="text-sm text-gray-700 mt-1">
+          活動機構/班級：____________ 姓名/組別：____________ 日期：____________
+        </p>
+      </div>
+
+      <div class="mb-4 text-sm text-gray-800">
+        <h2 class="font-bold">【題目挑戰目標】：</h2>
+        <p class="text-sm mt-1">
+          ★ 請用所提供的 9 張撲克牌放入九宮格內（每張牌各用 1 次）。<br>
+          ★ <strong>每一條橫排、每一直排、兩條斜對角相加，加總答案都必須剛好等於 <span id="printTargetSum" class="font-black text-lg underline">15</span>！</strong><br>
+          ★（提示：不用理會花色，A=1, J=11, Q=12, K=13）
+        </p>
+        <div class="mt-2 text-xs text-gray-600">
+          本題使用牌面點數：<span id="printCardSet" class="font-bold">A, 2, 3, 4, 5, 6, 7, 8, 9</span>
+        </div>
+      </div>
+
+      <!-- Puzzle Grid For Print -->
+      <div class="flex justify-center my-6">
+        <div id="printBoardContainer" class="border-4 border-black">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Solution Area -->
+      <div class="border-t-2 border-dashed border-gray-400 pt-4 mt-6">
+        <h3 class="text-xs font-bold mb-2">✂️ 參考解答區（可折疊，由帶領老師保管核對）：</h3>
+        <div class="flex justify-center">
+          <div id="printSolutionContainer" class="border border-gray-400 scale-90 transform origin-top">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="no-print bg-black/60 border-t border-cyan-900/60 px-4 py-2 text-center text-xs text-cyan-400/80">
+    撲克牌九宮格數和幻方 • 專為長照樂齡及益智數學設計之 3x3 加總桌遊
+  </footer>
+
+  <script>
+    // Audio engine using Tone.js
+    let soundEnabled = true;
+    let synth = null;
+
+    function initAudio() {
+      if (!synth && window.Tone) {
+        try {
+          synth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "triangle" },
+            envelope: { attack: 0.02, decay: 0.1, sustain: 0.2, release: 0.3 }
+          }).toDestination();
+          synth.volume.value = -8;
+        } catch (e) {
+          console.warn("Audio init failed", e);
+        }
+      }
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        if (Tone.context.state !== 'running') {
+          Tone.start();
+        }
+        initAudio();
+        if (!synth) return;
+        const now = Tone.now();
+        if (type === 'click') synth.triggerAttackRelease("C5", "16n", now);
+        else if (type === 'place') synth.triggerAttackRelease("E5", "16n", now);
+        else if (type === 'success') synth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "8n", now);
+        else if (type === 'error') synth.triggerAttackRelease(["D#4", "A3"], "8n", now);
+        else if (type === 'hint') synth.triggerAttackRelease(["G5", "B5"], "16n", now);
+      } catch (err) {}
+    }
+    // Poker Card Rank Mappings
+    const VALUE_TO_RANK = {
+      1: 'A', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9',
+      10: '10', 11: 'J', 12: 'Q', 13: 'K'
+    };
+
+    // Predefined sequences of 9 numbers that form 3x3 Magic Squares (arithmetic progressions)
+    const CARD_SETS = {
+      '1_to_9': [1, 2, 3, 4, 5, 6, 7, 8, 9],          // Sum = 15
+      '2_to_10': [2, 3, 4, 5, 6, 7, 8, 9, 10],        // Sum = 18
+      '3_to_J': [3, 4, 5, 6, 7, 8, 9, 10, 11],        // Sum = 21
+      '4_to_Q': [4, 5, 6, 7, 8, 9, 10, 11, 12],       // Sum = 24
+      '5_to_K': [5, 6, 7, 8, 9, 10, 11, 12, 13],       // Sum = 27
+      'odd_arithmetic': [1, 3, 5, 7, 9, 11, 13]        // Handled dynamically if needed
+    };
+
+    // Standard 3x3 Lo Shu pattern (indices 0 to 8 corresponding to sorted 9 numbers)
+    // In Lo Shu 1-9:
+    // 4 9 2
+    // 3 5 7
+    // 8 1 6
+    const BASE_LO_SHU_INDICES = [
+      [3, 8, 1],
+      [2, 4, 6],
+      [7, 0, 5]
+    ];
+
+    const gameState = {
+      cardSetKey: '1_to_9',
+      difficulty: 'easy',         // 'easy' (5 given), 'medium' (4 given), 'hard' (3 given), 'master' (1 given)
+      targetSum: 15,
+      numbers: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      solution: [],               // 3x3 matrix of objects { val, rank, suit }
+      puzzle: [],                 // 3x3 matrix with given clues
+      currentGrid: [],            // 3x3 matrix of user placed cards
+      selectedCell: null,         // { r, c }
+      activeSelectedCard: null,   // card object from pool
+      isElderMode: false
+    };
+
+    function showToast(msg, icon = "✨", isWarn = false) {
+      const toast = document.getElementById('toastNotification');
+      const inner = document.getElementById('toastInner');
+      document.getElementById('toastMsg').innerText = msg;
+      document.getElementById('toastIcon').innerText = icon;
+
+      if (isWarn) {
+        inner.className = "bg-red-950 border-2 border-red-500 text-white font-bold px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-sm";
+      } else {
+        inner.className = "bg-stone-900 border-2 border-amber-400 text-white font-bold px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 text-sm";
+      }
+
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-3');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-3');
+      }, 2500);
+    }
+
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    // Generate random valid 3x3 Magic Square solution by rotating/reflecting the base Lo Shu
+    function generateMagicSquare(sortedNine) {
+      let grid = [];
+      for (let r = 0; r < 3; r++) {
+        const row = [];
+        for (let c = 0; c < 3; c++) {
+          row.push(sortedNine[BASE_LO_SHU_INDICES[r][c]]);
+        }
+        grid.push(row);
+      }
+
+      // 8 symmetries of a square (D4 group): rotation and reflection
+      const rotations = Math.floor(Math.random() * 4);
+      for (let i = 0; i < rotations; i++) {
+        // Rotate 90 deg clockwise
+        const rotated = [
+          [grid[2][0], grid[1][0], grid[0][0]],
+          [grid[2][1], grid[1][1], grid[0][1]],
+          [grid[2][2], grid[1][2], grid[0][2]]
+        ];
+        grid = rotated;
+      }
+
+      if (Math.random() > 0.5) {
+        // Horizontal flip
+        grid = [grid[2], grid[1], grid[0]];
+      }
+      if (Math.random() > 0.5) {
+        // Vertical flip
+        grid = grid.map(row => [row[2], row[1], row[0]]);
+      }
+
+      // Convert integers to card objects (suits are purely decorative since game focuses on numbers)
+      const suits = ['♠', '♥', '♣', '♦'];
+      const solution = [];
+      for (let r = 0; r < 3; r++) {
+        const row = [];
+        for (let c = 0; c < 3; c++) {
+          const val = grid[r][c];
+          const rank = VALUE_TO_RANK[val] || `${val}`;
+          // pick a decorative suit
+          const suit = suits[(r * 3 + c) % 4];
+          const isRed = suit === '♥' || suit === '♦';
+          row.push({
+            val: val,
+            rank: rank,
+            suit: suit,
+            isRed: isRed
+          });
+        }
+        solution.push(row);
+      }
+      return solution;
+    }
+
+    function createMagicSquareClues(solution, difficulty) {
+      // difficulty decides how many clues to keep
+      let keepCount;
+      if (difficulty === 'easy') keepCount = 5;      // 4 blanks
+      else if (difficulty === 'medium') keepCount = 4;// 5 blanks
+      else if (difficulty === 'hard') keepCount = 3;  // 6 blanks
+      else keepCount = 1;                             // 8 blanks (only center)
+
+      const coords = [];
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          coords.push({ r, c });
+        }
+      }
+
+      let keepSet = new Set();
+      if (difficulty === 'master') {
+        keepSet.add('1,1'); // Center card
+      } else {
+        const shuffled = shuffle(coords);
+        // Make sure center or good anchors are included for senior solvability
+        keepSet.add('1,1');
+        for (let i = 0; i < shuffled.length && keepSet.size < keepCount; i++) {
+          keepSet.add(`${shuffled[i].r},${shuffled[i].c}`);
+        }
+      }
+
+      const puzzle = [];
+      const current = [];
+      for (let r = 0; r < 3; r++) {
+        const pRow = [];
+        const cRow = [];
+        for (let c = 0; c < 3; c++) {
+          if (keepSet.has(`${r},${c}`)) {
+            const item = { ...solution[r][c], isGiven: true };
+            pRow.push(item);
+            cRow.push({ ...item, isError: false });
+          } else {
+            pRow.push(null);
+            cRow.push(null);
+          }
+        }
+        puzzle.push(pRow);
+        current.push(cRow);
+      }
+
+      return { puzzle, current };
+    }
+    function updateGameConfig() {
+      if (gameState.cardSetKey === 'odd_arithmetic') {
+        // e.g. [1, 2, 4, 5, 7, 8, 10, 11, 13] or arithmetic progression [1, 3, 5, 7, 9, 11, 13]
+        gameState.numbers = [1, 2, 3, 5, 7, 9, 11, 12, 13]; 
+        // For strict magic square, standard arithmetic progression: 1, 2, 3, 4, 5, 6, 7, 8, 9 with step 1
+        gameState.numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+      } else {
+        gameState.numbers = CARD_SETS[gameState.cardSetKey] || CARD_SETS['1_to_9'];
+      }
+
+      // Middle number * 3 = Target Magic Constant
+      const middleVal = gameState.numbers[4];
+      gameState.targetSum = middleVal * 3;
+
+      document.getElementById('targetSumDisplay').innerText = gameState.targetSum;
+      document.getElementById('printTargetSum').innerText = gameState.targetSum;
+
+      const ranksText = gameState.numbers.map(v => VALUE_TO_RANK[v] || v).join(', ');
+      document.getElementById('descContent').innerHTML = `
+        <strong>3x3 數和幻方規則：</strong>使用撲克牌點數 <strong>${ranksText}</strong>。每橫排、每直排與兩條對角線相加，總和都要剛好等於 <strong class="text-amber-300 text-sm">${gameState.targetSum}</strong>！
+      `;
+      document.getElementById('printCardSet').innerText = ranksText;
+
+      const diffMap = { easy: '入門難度 (留5張)', medium: '普通難度 (留4張)', hard: '動腦挑戰 (留3張)', master: '長者大師 (留1張)' };
+      document.getElementById('badgeCurrentDiff').innerText = diffMap[gameState.difficulty];
+    }
+
+    function generateNewGame() {
+      updateGameConfig();
+      const solution = generateMagicSquare(gameState.numbers);
+      gameState.solution = solution;
+
+      const { puzzle, current } = createMagicSquareClues(solution, gameState.difficulty);
+      gameState.puzzle = puzzle;
+      gameState.currentGrid = current;
+      gameState.selectedCell = null;
+      gameState.activeSelectedCard = null;
+      document.getElementById('lblActiveCard').innerText = "無";
+
+      renderBoard();
+      renderAvailableCardsPool();
+      updateRemainingCount();
+      updateSumsCalculation();
+      renderPrintableWorksheet();
+      playSound('click');
+    }
+
+    function renderAvailableCardsPool() {
+      const container = document.getElementById('playerHandCards');
+      container.innerHTML = '';
+
+      // Count which cards from the 9 numbers are already placed on the board
+      const usedCounts = {};
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const item = gameState.currentGrid[r][c];
+          if (item) {
+            usedCounts[item.val] = (usedCounts[item.val] || 0) + 1;
+          }
+        }
+      }
+
+      gameState.numbers.forEach((val, idx) => {
+        const rank = VALUE_TO_RANK[val] || `${val}`;
+        const isUsed = usedCounts[val] > 0;
+        const isSelected = gameState.activeSelectedCard && gameState.activeSelectedCard.val === val;
+
+        const cardBtn = document.createElement('button');
+        let borderStyle = isSelected ? "border-amber-400 ring-4 ring-amber-400 scale-105" : "border-slate-300 hover:border-amber-400";
+        let opacityStyle = isUsed ? "opacity-40 grayscale" : "opacity-100";
+
+        cardBtn.className = `flex-shrink-0 w-14 h-20 sm:w-16 sm:h-24 bg-white rounded-xl border-2 ${borderStyle} ${opacityStyle} flex flex-col justify-between p-1.5 transition-all duration-150 card-shadow text-center`;
+
+        // Alternate color for readability
+        const colorClass = (val % 2 === 0) ? 'text-red-600' : 'text-slate-900';
+        const displaySuit = (val % 2 === 0) ? '♥' : '♠';
+
+        cardBtn.innerHTML = `
+          <div class="flex justify-between items-center text-xs font-black ${colorClass}">
+            <span>${rank}</span>
+            <span>(${val})</span>
+          </div>
+          <div class="text-xl sm:text-2xl font-black ${colorClass} my-auto">${rank}</div>
+          <div class="text-[10px] font-bold ${isUsed ? 'text-slate-500' : 'text-blue-600'} leading-none">
+            ${isUsed ? '已放入' : '可出牌'}
+          </div>
+        `;
+
+        if (!isUsed) {
+          cardBtn.addEventListener('click', () => {
+            selectHandCard({ val, rank, suit: displaySuit, isRed: val % 2 === 0 });
+          });
+        }
+
+        container.appendChild(cardBtn);
+      });
+    }
+
+    function selectHandCard(cardObj) {
+      playSound('click');
+      gameState.activeSelectedCard = cardObj;
+      document.getElementById('lblActiveCard').innerHTML = `<span class="bg-amber-400 text-stone-950 font-black px-2 py-0.5 rounded text-sm">${cardObj.rank} (算 ${cardObj.val} 點)</span>`;
+
+      if (gameState.selectedCell) {
+        const { r, c } = gameState.selectedCell;
+        placeCardInCell(r, c, cardObj);
+      }
+    }
+
+    function renderBoard() {
+      const container = document.getElementById('boardContainer');
+      container.innerHTML = '';
+      const isElder = gameState.isElderMode;
+
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const cellData = gameState.currentGrid[r][c];
+          const isGiven = cellData && cellData.isGiven;
+          const isSelected = gameState.selectedCell && gameState.selectedCell.r === r && gameState.selectedCell.c === c;
+
+          const cellEl = document.createElement('div');
+          
+          let wClasses = isElder ? "w-24 h-32 sm:w-32 sm:h-44" : "w-20 h-28 sm:w-28 sm:h-38";
+          let bgClass = "bg-slate-900/90 hover:bg-slate-800";
+          if (isSelected) {
+            bgClass = "bg-amber-500/30 ring-4 ring-amber-400";
+          }
+
+          cellEl.className = `${wClasses} border-2 border-cyan-500/50 ${bgClass} rounded-2xl cursor-pointer flex flex-col items-center justify-center relative transition-all duration-150 card-shadow`;
+          cellEl.dataset.row = r;
+          cellEl.dataset.col = c;
+
+          if (cellData) {
+            const cardBg = isGiven ? 'bg-amber-100 border-amber-500' : 'bg-white border-slate-300';
+            let cardClasses = `w-[92%] h-[92%] ${cardBg} border-2 rounded-xl flex flex-col justify-between p-1.5 font-card`;
+            if (cellData.isError) {
+              cardClasses += " ring-4 ring-red-500 bg-red-100";
+            }
+
+            const fontRank = isElder ? 'text-3xl sm:text-4xl' : 'text-xl sm:text-2xl';
+            const fontVal = isElder ? 'text-xs sm:text-sm' : 'text-[10px] sm:text-xs';
+            const colorClass = cellData.isRed ? 'text-red-600' : 'text-slate-900';
+
+            cellEl.innerHTML = `
+              <div class="${cardClasses}">
+                <div class="flex items-center justify-between leading-none ${colorClass}">
+                  <span class="font-black text-sm sm:text-base">${cellData.rank}</span>
+                  <span class="${fontVal} font-bold bg-slate-200 text-slate-800 px-1 rounded">= ${cellData.val}</span>
+                </div>
+                <div class="flex flex-col items-center justify-center my-auto leading-none ${colorClass}">
+                  <span class="font-black ${fontRank}">${cellData.rank}</span>
+                  <span class="text-xs font-semibold text-slate-500 mt-1">點數 ${cellData.val}</span>
+                </div>
+                <div class="flex items-center justify-between leading-none rotate-180 ${colorClass}">
+                  <span class="font-black text-sm sm:text-base">${cellData.rank}</span>
+                  <span class="text-xs font-black">${cellData.suit}</span>
+                </div>
+              </div>
+            `;
+
+            if (isGiven) {
+              const lockBadge = document.createElement('span');
+              lockBadge.className = "absolute -top-1.5 -right-1 text-[9px] bg-amber-500 text-stone-950 font-black px-1.5 py-0.5 rounded shadow";
+              lockBadge.innerText = "題目固定";
+              cellEl.appendChild(lockBadge);
+            }
+          } else {
+            cellEl.innerHTML = `<span class="text-cyan-600/70 text-sm font-bold">點選空格</span>`;
+          }
+
+          cellEl.addEventListener('click', () => handleCellClick(r, c));
+          container.appendChild(cellEl);
+        }
+      }
+    }
+
+    function handleCellClick(r, c) {
+      const cellData = gameState.currentGrid[r][c];
+
+      if (cellData && cellData.isGiven) {
+        playSound('click');
+        gameState.selectedCell = { r, c };
+        renderBoard();
+        showToast("這是題目的固定牌，不能換喔！", "🔒");
+        return;
+      }
+
+      if (gameState.activeSelectedCard) {
+        placeCardInCell(r, c, gameState.activeSelectedCard);
+        return;
+      }
+
+      playSound('click');
+      gameState.selectedCell = { r, c };
+      renderBoard();
+    }
+
+    function placeCardInCell(r, c, cardObj) {
+      if (gameState.currentGrid[r][c] && gameState.currentGrid[r][c].isGiven) {
+        showToast("該格為題目固定牌！", "🔒");
+        return;
+      }
+
+      gameState.currentGrid[r][c] = {
+        val: cardObj.val,
+        rank: cardObj.rank,
+        suit: cardObj.suit,
+        isRed: cardObj.isRed,
+        isGiven: false,
+        isError: false
+      };
+
+      playSound('place');
+      gameState.activeSelectedCard = null;
+      document.getElementById('lblActiveCard').innerText = "無";
+
+      renderBoard();
+      renderAvailableCardsPool();
+      updateRemainingCount();
+      updateSumsCalculation();
+      checkAutoCompletion();
+    }
+
+    function updateSumsCalculation() {
+      const target = gameState.targetSum;
+      let rowSums = [0, 0, 0];
+      let colSums = [0, 0, 0];
+      let rowFilled = [0, 0, 0];
+      let colFilled = [0, 0, 0];
+
+      let diagMain = 0;
+      let diagMainFilled = 0;
+      let diagAnti = 0;
+      let diagAntiFilled = 0;
+
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const item = gameState.currentGrid[r][c];
+          if (item) {
+            rowSums[r] += item.val;
+            rowFilled[r]++;
+            colSums[c] += item.val;
+            colFilled[c]++;
+
+            if (r === c) {
+              diagMain += item.val;
+              diagMainFilled++;
+            }
+            if (r + c === 2) {
+              diagAnti += item.val;
+              diagAntiFilled++;
+            }
+          }
+        }
+      }
+
+      // Update UI row/col badges
+      for (let i = 0; i < 3; i++) {
+        const rowEl = document.getElementById(`rowSum${i}`);
+        const isFull = rowFilled[i] === 3;
+        const isMatch = rowSums[i] === target;
+        let badgeColor = isFull ? (isMatch ? "bg-emerald-600 text-white border-emerald-400" : "bg-red-700 text-white border-red-500") : "bg-slate-800 text-slate-300";
+        rowEl.className = `text-xs font-bold px-2.5 py-3 rounded-lg border flex items-center justify-center transition-all ${badgeColor}`;
+        rowEl.innerHTML = `橫 ${i + 1} 和: <strong>${rowSums[i]}</strong> ${isFull ? (isMatch ? '✓' : '✗') : ''}`;
+
+        const colEl = document.getElementById(`colSum${i}`);
+        const isColFull = colFilled[i] === 3;
+        const isColMatch = colSums[i] === target;
+        let colBadgeColor = isColFull ? (isColMatch ? "bg-emerald-600 text-white border-emerald-400" : "bg-red-700 text-white border-red-500") : "bg-slate-800 text-slate-300";
+        colEl.className = `text-xs font-bold px-2 py-1 rounded-lg border transition-all ${colBadgeColor}`;
+        colEl.innerHTML = `直 ${i + 1} 和: <strong>${colSums[i]}</strong> ${isColFull ? (isColMatch ? '✓' : '✗') : ''}`;
+      }
+
+      // Update Diagonals
+      const diagMainEl = document.getElementById('diagSumMain');
+      const isDiagMainMatch = diagMainFilled === 3 && diagMain === target;
+      diagMainEl.className = `px-2 py-0.5 rounded border ${diagMainFilled === 3 ? (isDiagMainMatch ? 'bg-emerald-700 text-white border-emerald-400' : 'bg-red-800 text-white border-red-500') : 'bg-slate-800/80 text-cyan-300 border-slate-700'}`;
+      diagMainEl.innerHTML = `左上至右下對角和: <strong>${diagMain}</strong> ${diagMainFilled === 3 ? (isDiagMainMatch ? '✓' : '✗') : ''}`;
+
+      const diagAntiEl = document.getElementById('diagSumAnti');
+      const isDiagAntiMatch = diagAntiFilled === 3 && diagAnti === target;
+      diagAntiEl.className = `px-2 py-0.5 rounded border ${diagAntiFilled === 3 ? (isDiagAntiMatch ? 'bg-emerald-700 text-white border-emerald-400' : 'bg-red-800 text-white border-red-500') : 'bg-slate-800/80 text-cyan-300 border-slate-700'}`;
+      diagAntiEl.innerHTML = `右上至左下對角和: <strong>${diagAnti}</strong> ${diagAntiFilled === 3 ? (isDiagAntiMatch ? '✓' : '✗') : ''}`;
+    }
+
+    function updateRemainingCount() {
+      let count = 0;
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          if (!gameState.currentGrid[r][c]) count++;
+        }
+      }
+      document.getElementById('countRemaining').innerText = count;
+      return count;
+    }
+
+    function checkAutoCompletion() {
+      if (updateRemainingCount() === 0) {
+        checkSolution(true);
+      }
+    }
+
+    function checkSolution(isAuto = false) {
+      const target = gameState.targetSum;
+      let hasEmpty = false;
+
+      let rSums = [0, 0, 0];
+      let cSums = [0, 0, 0];
+      let d1 = 0, d2 = 0;
+
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const item = gameState.currentGrid[r][c];
+          if (!item) {
+            hasEmpty = true;
+          } else {
+            rSums[r] += item.val;
+            cSums[c] += item.val;
+            if (r === c) d1 += item.val;
+            if (r + c === 2) d2 += item.val;
+          }
+        }
+      }
+
+      if (hasEmpty) {
+        playSound('error');
+        showToast("九宮格還有空格尚未放完撲克牌喔！", "✏️️", true);
+        return;
+      }
+
+      const allMatch = rSums.every(s => s === target) &&
+                       cSums.every(s => s === target) &&
+                       d1 === target && d2 === target;
+
+      if (!allMatch) {
+        playSound('error');
+        showToast(`尚未達成所有行、列、對角線相加等於 ${target}，再調整看看！`, "⚠️", true);
+        return;
+      }
+
+      playSound('success');
+      showToast(`恭喜完成！每一橫排、直排、斜對角相加都精準等於 ${target}！🎉`, "🏆");
+    }
+
+    function giveHint() {
+      const emptyList = [];
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const cur = gameState.currentGrid[r][c];
+          if (!cur || (!cur.isGiven && cur.val !== gameState.solution[r][c].val)) {
+            emptyList.push({ r, c });
+          }
+        }
+      }
+
+      if (emptyList.length === 0) {
+        showToast("牌面都已經放對囉，沒有需要提示的空格！", "👏");
+        return;
+      }
+
+      const pick = emptyList[Math.floor(Math.random() * emptyList.length)];
+      const solCard = gameState.solution[pick.r][pick.c];
+
+      gameState.currentGrid[pick.r][pick.c] = {
+        val: solCard.val,
+        rank: solCard.rank,
+        suit: solCard.suit,
+        isRed: solCard.isRed,
+        isGiven: false,
+        isError: false
+      };
+
+      gameState.selectedCell = { r: pick.r, c: pick.c };
+      playSound('hint');
+      renderBoard();
+      renderAvailableCardsPool();
+      updateRemainingCount();
+      updateSumsCalculation();
+      showToast(`已指導：在第 ${pick.r + 1} 橫排、第 ${pick.c + 1} 直欄放入【${solCard.rank}（${solCard.val}點）】！`, "💡");
+    }
+
+    function showFullSolution() {
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const sol = gameState.solution[r][c];
+          const isGiven = gameState.puzzle[r][c] !== null;
+          gameState.currentGrid[r][c] = {
+            val: sol.val,
+            rank: sol.rank,
+            suit: sol.suit,
+            isRed: sol.isRed,
+            isGiven: isGiven,
+            isError: false
+          };
+        }
+      }
+
+      playSound('place');
+      renderBoard();
+      renderAvailableCardsPool();
+      updateRemainingCount();
+      updateSumsCalculation();
+      showToast(`已公布標準幻方答案（每行總和皆為 ${gameState.targetSum}）！`, "👁️");
+    }
+
+    function renderPrintableWorksheet() {
+      const printBoard = document.getElementById('printBoardContainer');
+      const printSolution = document.getElementById('printSolutionContainer');
+      printBoard.innerHTML = '';
+      printSolution.innerHTML = '';
+
+      const buildGrid = (dataGrid) => {
+        const wrap = document.createElement('div');
+        wrap.className = "grid grid-cols-3 border-4 border-black";
+
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            const cell = document.createElement('div');
+            cell.className = "w-24 h-28 border-2 border-black flex flex-col items-center justify-between p-2 font-bold bg-white text-black";
+
+            const item = dataGrid[r][c];
+            if (item) {
+              const colorCls = item.isRed ? 'text-red-600' : 'text-black';
+              cell.innerHTML = `
+                <div class="w-full flex justify-between text-xs ${colorCls}">
+                  <span>${item.rank}</span>
+                  <span>(${item.val})</span>
+                </div>
+                <div class="text-3xl font-black ${colorCls}">
+                  ${item.rank}
+                </div>
+                <div class="text-[10px] text-gray-500">點數 = ${item.val}</div>
+              `;
+            } else {
+              cell.innerHTML = `
+                <div class="m-auto text-gray-400 text-xs font-normal">（請填牌）</div>
+              `;
+            }
+            wrap.appendChild(cell);
+          }
+        }
+        return wrap;
+      };
+
+      printBoard.appendChild(buildGrid(gameState.puzzle));
+      printSolution.appendChild(buildGrid(gameState.solution));
+    }
+    // Attach UI Event Listeners
+    window.addEventListener('DOMContentLoaded', () => {
+      // Card Set Selection
+      document.getElementById('selectCardSet').addEventListener('change', (e) => {
+        gameState.cardSetKey = e.target.value;
+        generateNewGame();
+      });
+
+      // Difficulty Selection
+      document.getElementById('selectDifficulty').addEventListener('change', (e) => {
+        gameState.difficulty = e.target.value;
+        generateNewGame();
+      });
+
+      // New Game
+      document.getElementById('btnNewPuzzle').addEventListener('click', () => {
+        generateNewGame();
+        showToast("全新 3x3 數和九宮格已隨機產生！", "🎲");
+      });
+
+      // Reset Current Puzzle
+      document.getElementById('btnRestart').addEventListener('click', () => {
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            if (gameState.puzzle[r][c]) {
+              gameState.currentGrid[r][c] = { ...gameState.puzzle[r][c], isError: false };
+            } else {
+              gameState.currentGrid[r][c] = null;
+            }
+          }
+        }
+        gameState.selectedCell = null;
+        gameState.activeSelectedCard = null;
+        document.getElementById('lblActiveCard').innerText = "無";
+        playSound('place');
+        renderBoard();
+        renderAvailableCardsPool();
+        updateRemainingCount();
+        updateSumsCalculation();
+        showToast("已清空長輩所填手牌，重回題目初始狀態！", "🔄");
+      });
+
+      // Senior Large Font Mode Toggle
+      document.getElementById('btnElderMode').addEventListener('click', () => {
+        gameState.isElderMode = !gameState.isElderMode;
+        const btn = document.getElementById('btnElderMode');
+        if (gameState.isElderMode) {
+          btn.classList.add('bg-amber-500', 'text-stone-950');
+          btn.classList.remove('bg-amber-600/30', 'text-amber-200');
+          showToast("已開啟特大清晰字體！", "👓");
+        } else {
+          btn.classList.remove('bg-amber-500', 'text-stone-950');
+          btn.classList.add('bg-amber-600/30', 'text-amber-200');
+          showToast("切換為標準字體尺寸", "👓");
+        }
+        renderBoard();
+      });
+
+      // Sound Toggle
+      document.getElementById('btnSoundToggle').addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        document.getElementById('soundIcon').innerText = soundEnabled ? "🔊" : "🔇";
+        document.getElementById('soundText').innerText = soundEnabled ? "音效開" : "音效關";
+        showToast(soundEnabled ? "音效已開啟" : "音效已靜音", soundEnabled ? "🔊" : "🔇");
+      });
+
+      // Print
+      document.getElementById('btnPrintWorksheet').addEventListener('click', () => {
+        renderPrintableWorksheet();
+        window.print();
+      });
+
+      // Hint & Clear
+      document.getElementById('btnHint').addEventListener('click', giveHint);
+      document.getElementById('btnClearCell').addEventListener('click', () => {
+        if (!gameState.selectedCell) {
+          showToast("請先點選想要清空的九宮格！", "👆");
+          return;
+        }
+        const { r, c } = gameState.selectedCell;
+        if (gameState.currentGrid[r][c] && gameState.currentGrid[r][c].isGiven) {
+          showToast("這是題目固定牌，不可清空！", "🔒");
+          return;
+        }
+        gameState.currentGrid[r][c] = null;
+        playSound('place');
+        renderBoard();
+        renderAvailableCardsPool();
+        updateRemainingCount();
+        updateSumsCalculation();
+      });
+
+      document.getElementById('btnCheckSolution').addEventListener('click', () => checkSolution(false));
+      document.getElementById('btnShowSolution').addEventListener('click', showFullSolution);
+
+      // Keyboard Esc to deselect
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          gameState.selectedCell = null;
+          gameState.activeSelectedCard = null;
+          document.getElementById('lblActiveCard').innerText = "無";
+          renderBoard();
+          renderAvailableCardsPool();
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+          if (gameState.selectedCell) {
+            const { r, c } = gameState.selectedCell;
+            if (gameState.currentGrid[r][c] && !gameState.currentGrid[r][c].isGiven) {
+              gameState.currentGrid[r][c] = null;
+              renderBoard();
+              renderAvailableCardsPool();
+              updateRemainingCount();
+              updateSumsCalculation();
+            }
+          }
+        }
+      });
+
+      // Launch initial game
+      generateNewGame();
+    });
+  </script>
+</body>
+</html>
